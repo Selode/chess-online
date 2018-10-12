@@ -173,6 +173,9 @@ function boardReducer(state = setUpGame(), action) {
       return Object.assign({}, state, { board: newBoard, heldPiece: newPiece });
     } else if (heldPiece !== "") {
       let newBoard = board.slice();
+      if (newBoard[i][j] === "blackKing" || newBoard[i][j] === "whiteKing") {
+        alert("The king is dead, long live the king");
+      }
       newBoard[i][j] = heldPiece;
       return Object.assign({}, state, { board: newBoard, heldPiece: "" });
     }
