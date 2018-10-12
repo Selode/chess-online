@@ -131,7 +131,7 @@ class Game extends React.Component {
     );
   }
 }
-
+//Redux
 // ========================================
 function moveAction(i, j) {
   return {
