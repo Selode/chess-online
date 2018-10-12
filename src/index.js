@@ -54,6 +54,7 @@ class Chess extends React.Component {
     this.setState((state, props) => {
       const newBoard = state.board.slice();
       newBoard[i][j] = state.heldPiece;
+
       return { board: newBoard, holdingPiece: false, heldPiece: "" };
     });
   }
@@ -68,9 +69,10 @@ class Chess extends React.Component {
       });
     }
   }
-  renderChessSquare(i, j) {
+  renderChessSquare(i, j, squareColor) {
     return (
       <ChessSquare
+        className={squareColor}
         key={"" + i + j}
         piece={piecematch(this.state.board[i][j])}
         onClick={() => this.handlePiece(i, j)}
@@ -79,10 +81,17 @@ class Chess extends React.Component {
   }
   render() {
     const buildBoard = [];
+    let squareColor = "whiteChessSquare";
     for (let i = 0; i < 8; i++) {
       var row = [];
       for (let j = 0; j < 8; j++) {
-        row.push(this.renderChessSquare(i, j));
+        if ((i % 2 == 0 && !(j % 2 == 0)) || (!(i % 2 == 0) && j % 2 == 0)) {
+          squareColor = "blackChessSquare";
+        } else {
+          squareColor = "whiteChessSquare";
+        }
+        let cs = this.renderChessSquare(i, j, squareColor);
+        row.push(cs);
       }
       buildBoard.push(<div key={"row" + i}>{row}</div>);
     }
@@ -98,7 +107,10 @@ class Chess extends React.Component {
 class ChessSquare extends React.Component {
   render() {
     return (
-      <button className="chessSquare" onClick={() => this.props.onClick()}>
+      <button
+        className={this.props.className}
+        onClick={() => this.props.onClick()}
+      >
         {this.props.piece}
       </button>
     );
