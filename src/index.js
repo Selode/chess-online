@@ -1,18 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { createStore } from "redux";
+import { Provider } from "react-redux";
 import "./index.css";
 
 const store = createStore(boardReducer, setUpGame());
 
 class Chess extends React.Component {
-  constructor(props) {
-    super(props);
-    const matrix = [];
-    for (let i = 0; i < 8; i++) {
-      matrix[i] = new Array(8);
-    }
-  }
   componentDidMount() {
     this.unsubscribe = store.subscribe(() => this.forceUpdate());
   }
@@ -106,15 +100,17 @@ function piecematch(piece) {
 class Game extends React.Component {
   render() {
     return (
-      <div className="game">
-        <div className="game-board">
-          <Chess />
+      <Provider store={store}>
+        <div className="game">
+          <div className="game-board">
+            <Chess />
+          </div>
+          <div className="game-info">
+            <div>{/* status */}</div>
+            <ol>{/* TODO */}</ol>
+          </div>
         </div>
-        <div className="game-info">
-          <div>{/* status */}</div>
-          <ol>{/* TODO */}</ol>
-        </div>
-      </div>
+      </Provider>
     );
   }
 }
@@ -127,6 +123,15 @@ function moveAction(i, j) {
     j: j
   };
 }
+
+const mapDispatchToProps = (dispatch, ownProps) => {
+  return {
+    onClick: () => dispatch(moveAction(ownProps.i, ownProps.j))
+  };
+};
+const mapStateToProps = (state, ownProps) => {
+  return {};
+};
 
 function setUpGame() {
   const matrix = [];
@@ -160,7 +165,6 @@ function setUpGame() {
 function boardReducer(state = setUpGame(), action) {
   var { board, heldPiece } = state;
   var { type, i, j } = action;
-  console.log(heldPiece);
   if (type === "MOVE") {
     if (heldPiece === "" && board[i][j] !== "") {
       let newPiece = board[i][j];
