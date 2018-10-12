@@ -12,39 +12,12 @@ class Chess extends React.Component {
     for (let i = 0; i < 8; i++) {
       matrix[i] = new Array(8);
     }
-    this.handlePiece = this.handlePiece.bind(this);
   }
   componentDidMount() {
     this.unsubscribe = store.subscribe(() => this.forceUpdate());
   }
   componentWillUnmount() {
     this.unsubscribe();
-  }
-  handlePiece(i, j) {
-    if (this.state.holdingPiece) {
-      this.setPiece(i, j);
-    } else {
-      this.pickPiece(i, j);
-    }
-  }
-
-  setPiece(i, j) {
-    this.setState((state, props) => {
-      const newBoard = state.board.slice();
-      newBoard[i][j] = state.heldPiece;
-      return { board: newBoard, holdingPiece: false, heldPiece: "" };
-    });
-  }
-
-  pickPiece(i, j) {
-    if (this.state.board[i][j]) {
-      this.setState((state, props) => {
-        let newPiece = state.board[i][j];
-        let newBoard = state.board.slice();
-        newBoard[i][j] = "";
-        return { board: newBoard, holdingPiece: true, heldPiece: newPiece };
-      });
-    }
   }
   renderChessSquare(i, j) {
     let state = store.getState();
