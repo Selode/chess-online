@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import { createStore } from "redux";
 import "./index.css";
+
+const store = createStore(boardReducer, setUpGame());
 
 class Chess extends React.Component {
   constructor(props) {
@@ -9,39 +12,14 @@ class Chess extends React.Component {
     for (let i = 0; i < 8; i++) {
       matrix[i] = new Array(8);
     }
-    this.setUpGame(matrix);
     this.handlePiece = this.handlePiece.bind(this);
-    this.state = {
-      board: matrix,
-      holdingPiece: false,
-      heldPiece: ""
-    };
   }
-  setUpGame(matrix) {
-    matrix[7][0] = "whiteRook";
-    matrix[7][1] = "whiteKnight";
-    matrix[7][2] = "whiteBishop";
-    matrix[7][3] = "whiteQueen";
-    matrix[7][4] = "whiteKing";
-    matrix[7][5] = "whiteBishop";
-    matrix[7][6] = "whiteKnight";
-    matrix[7][7] = "whiteRook";
-    for (let i = 0; i < 8; i++) {
-      matrix[6][i] = "whitePawn";
-    }
-    matrix[0][0] = "blackRook";
-    matrix[0][1] = "blackKnight";
-    matrix[0][2] = "blackBishop";
-    matrix[0][3] = "blackQueen";
-    matrix[0][4] = "blackKing";
-    matrix[0][5] = "blackBishop";
-    matrix[0][6] = "blackKnight";
-    matrix[0][7] = "blackRook";
-    for (let i = 0; i < 8; i++) {
-      matrix[1][i] = "blackPawn";
-    }
+  componentDidMount() {
+    this.unsubscribe = store.subscribe(() => this.forceUpdate());
   }
-
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
   handlePiece(i, j) {
     if (this.state.holdingPiece) {
       this.setPiece(i, j);
@@ -69,15 +47,17 @@ class Chess extends React.Component {
     }
   }
   renderChessSquare(i, j) {
+    let state = store.getState();
     return (
       <ChessSquare
         key={"" + i + j}
-        piece={piecematch(this.state.board[i][j])}
-        onClick={() => this.handlePiece(i, j)}
+        piece={piecematch(state.board[i][j])}
+        onClick={() => store.dispatch(moveAction(i, j))}
       />
     );
   }
   render() {
+    const state = store.getState();
     const buildBoard = [];
     for (let i = 0; i < 8; i++) {
       var row = [];
@@ -90,7 +70,7 @@ class Chess extends React.Component {
     return (
       <div>
         <div>{buildBoard}</div>
-        <ChessSquare piece={piecematch(this.state.heldPiece)} />
+        <ChessSquare piece={piecematch(state.heldPiece)} />
       </div>
     );
   }
@@ -131,6 +111,8 @@ function piecematch(piece) {
       return "\u265E";
     case "blackBishop":
       return "\u265D";
+    default:
+      return "";
   }
 }
 
@@ -150,6 +132,62 @@ class Game extends React.Component {
   }
 }
 
+// ========================================
+function moveAction(i, j) {
+  return {
+    type: "MOVE",
+    i: i,
+    j: j
+  };
+}
+
+function setUpGame() {
+  const matrix = [];
+  for (let i = 0; i < 8; i++) {
+    matrix[i] = new Array(8).fill("");
+  }
+  matrix[7][0] = "whiteRook";
+  matrix[7][1] = "whiteKnight";
+  matrix[7][2] = "whiteBishop";
+  matrix[7][3] = "whiteQueen";
+  matrix[7][4] = "whiteKing";
+  matrix[7][5] = "whiteBishop";
+  matrix[7][6] = "whiteKnight";
+  matrix[7][7] = "whiteRook";
+  for (let i = 0; i < 8; i++) {
+    matrix[6][i] = "whitePawn";
+  }
+  matrix[0][0] = "blackRook";
+  matrix[0][1] = "blackKnight";
+  matrix[0][2] = "blackBishop";
+  matrix[0][3] = "blackQueen";
+  matrix[0][4] = "blackKing";
+  matrix[0][5] = "blackBishop";
+  matrix[0][6] = "blackKnight";
+  matrix[0][7] = "blackRook";
+  for (let i = 0; i < 8; i++) {
+    matrix[1][i] = "blackPawn";
+  }
+  return { board: matrix, heldPiece: "" };
+}
+function boardReducer(state = setUpGame(), action) {
+  var { board, heldPiece } = state;
+  var { type, i, j } = action;
+  console.log(heldPiece);
+  if (type === "MOVE") {
+    if (heldPiece === "" && board[i][j] !== "") {
+      let newPiece = board[i][j];
+      let newBoard = board.slice();
+      newBoard[i][j] = "";
+      return Object.assign({}, state, { board: newBoard, heldPiece: newPiece });
+    } else if (heldPiece !== "") {
+      let newBoard = board.slice();
+      newBoard[i][j] = heldPiece;
+      return Object.assign({}, state, { board: newBoard, heldPiece: "" });
+    }
+  }
+  return state;
+}
 // ========================================
 
 ReactDOM.render(<Game />, document.getElementById("root"));
