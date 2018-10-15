@@ -2,30 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { createStore } from "redux";
 import { Provider } from "react-redux";
+import { connect } from "react-redux";
 import "./index.css";
 
-const store = createStore(boardReducer, setUpGame());
-
-class Chess extends React.Component {
-  componentDidMount() {
-    this.unsubscribe = store.subscribe(() => this.forceUpdate());
-  }
-  componentWillUnmount() {
-    this.unsubscribe();
-  }
-  renderChessSquare(i, j, squareColor) {
-    let state = store.getState();
-    return (
-      <ChessSquare
-        className={squareColor}
-        key={"" + i + j}
-        piece={piecematch(state.board[i][j])}
-        onClick={() => store.dispatch(moveAction(i, j))}
-      />
-    );
-  }
+class ChessRenderer extends React.Component {
   render() {
-    const state = store.getState();
     const buildBoard = [];
     let squareColor = "whiteChessSquare";
     for (let i = 0; i < 8; i++) {
@@ -39,20 +20,40 @@ class Chess extends React.Component {
         } else {
           squareColor = "whiteChessSquare";
         }
-        let cs = this.renderChessSquare(i, j, squareColor);
+        let cs = (
+          <ChessSquare
+            className={squareColor}
+            key={"" + i + j}
+            piece={piecematch(this.props.board[i][j])}
+            onClick={() => this.props.onClick(i, j)}
+          />
+        );
         row.push(cs);
       }
       buildBoard.push(<div key={"row" + i}>{row}</div>);
     }
-
     return (
       <div>
         <div>{buildBoard}</div>
-        <ChessSquare piece={piecematch(state.heldPiece)} />
+        <ChessSquare piece={piecematch(this.props.heldPiece)} />
+        <button className="undo" onClick={() => this.props.onUndo()}>
+          Undo
+        </button>
       </div>
     );
   }
 }
+
+class UndoButton extends React.Component {
+  render() {
+    return (
+      <button className="undo" onClick={() => this.props.onClick()}>
+        Undo
+      </button>
+    );
+  }
+}
+
 class ChessSquare extends React.Component {
   render() {
     return (
@@ -100,7 +101,7 @@ function piecematch(piece) {
 class Game extends React.Component {
   render() {
     return (
-      <Provider store={store}>
+      <Provider store={createStore(boardReducer, setUpGame())}>
         <div className="game">
           <div className="game-board">
             <Chess />
@@ -114,8 +115,27 @@ class Game extends React.Component {
     );
   }
 }
+
 //Redux
 // ========================================
+const mapDispatchToProps = (dispatch, ownProps) => {
+  return {
+    onClick: (i, j) => dispatch(moveAction(i, j)),
+    onUndo: () => dispatch(undoAction())
+  };
+};
+const mapStateToProps = (state, ownProps) => {
+  return {
+    board: state.board,
+    heldPiece: state.heldPiece
+  };
+};
+const Chess = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(ChessRenderer);
+
+//Action Creators
 function moveAction(i, j) {
   return {
     type: "MOVE",
@@ -124,23 +144,13 @@ function moveAction(i, j) {
   };
 }
 
-function undoAction(i, j) {
+function undoAction() {
   return {
-    type: "UNDO",
-    i: i,
-    j: j
+    type: "UNDO"
   };
 }
 
-const mapDispatchToProps = (dispatch, ownProps) => {
-  return {
-    onClick: () => dispatch(moveAction(ownProps.i, ownProps.j))
-  };
-};
-const mapStateToProps = (state, ownProps) => {
-  return {};
-};
-
+//Reducer and SetUp
 function setUpGame() {
   const matrix = [];
   for (let i = 0; i < 8; i++) {
@@ -168,48 +178,64 @@ function setUpGame() {
   for (let i = 0; i < 8; i++) {
     matrix[1][i] = "blackPawn";
   }
-  return { board: matrix, heldPiece: "", historyboard: [] };
+  return {
+    board: matrix,
+    heldPiece: "",
+    historyBoard: [matrix]
+  };
 }
 function boardReducer(state = setUpGame(), action) {
-  var { board, heldPiece } = state;
+  var { board, heldPiece, historyBoard } = state;
   var { type, i, j } = action;
-  switch (type) {
-    case "MOVE":
-      let newBoard = board.slice();
-      let newHistoryBoard = historyBoard.slice();
-      if (heldPiece === "" && board[i][j] !== "") {
-        let newPiece = board[i][j];
+  if (type === "MOVE") {
+    let newBoard = board.slice();
+    if (heldPiece === "" && board[i][j] !== "") {
+      let newPiece = board[i][j];
 
-        newBoard[i][j] = "";
-        newHistoryBoard.push(newBoard);
-        return Object.assign({}, state, {
-          board: newBoard,
-          heldPiece: newPiece,
-          historyBoard: newHistoryBoard
-        });
-      } else if (heldPiece !== "") {
-        if (newBoard[i][j] === "blackKing" || newBoard[i][j] === "whiteKing") {
-          alert("The king is dead, long live the king");
-        }
-        newBoard[i][j] = heldPiece;
-        historyBoard.push(newBoard);
-        return Object.assign({}, state, {
-          board: newBoard,
-          heldPiece: "",
-          historyBoard: newHistoryBoard
-        });
+      newBoard[i][j] = "";
+      return Object.assign({}, state, {
+        board: newBoard,
+        heldPiece: newPiece
+      });
+    } else if (heldPiece !== "") {
+      if (newBoard[i][j] === "blackKing" || newBoard[i][j] === "whiteKing") {
+        alert("The king is dead, long live the king");
       }
-    case "UNDO":
-      let newBoard = historyBoard.pop();
+      newBoard[i][j] = heldPiece;
+      let newHistoryBoard = historyBoard.slice();
+
+      newHistoryBoard.map(e => console.log(e + "\n"));
+      newHistoryBoard.push(newBoard);
+
+      console.log("\n \n Matrix starts here");
+      for (let i = 0; i < newHistoryBoard.length; i++) {
+        console.log("\nLine" + i + " \n" + newHistoryBoard[i]);
+      }
+
+      newHistoryBoard.map(e => console.log(e + "\n"));
+
       return Object.assign({}, state, {
         board: newBoard,
         heldPiece: "",
-        historyBoard: newBoard
+        historyBoard: newHistoryBoard
       });
+    }
+  } else if (type === "UNDO") {
+    let newHistoryBoard = historyBoard.slice();
+    if (newHistoryBoard.length > 0) {
+      let newBoard = newHistoryBoard.pop();
+      console.log("Hello darkness, my old friend " + newBoard);
+      console.log("\n \n Matrix starts here");
+      historyBoard.map(e => console.log(e + "\n"));
 
-    default:
-      return state;
+      return {
+        board: newBoard,
+        heldPiece: "",
+        historyBoard: newHistoryBoard
+      };
+    }
   }
+  return state;
 }
 // ========================================
 
