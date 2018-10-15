@@ -2,30 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { createStore } from "redux";
 import { Provider } from "react-redux";
+import { connect } from "react-redux";
 import "./index.css";
 
-const store = createStore(boardReducer, setUpGame());
-
-class Chess extends React.Component {
-  componentDidMount() {
-    this.unsubscribe = store.subscribe(() => this.forceUpdate());
-  }
-  componentWillUnmount() {
-    this.unsubscribe();
-  }
-  renderChessSquare(i, j, squareColor) {
-    let state = store.getState();
-    return (
-      <ChessSquare
-        className={squareColor}
-        key={"" + i + j}
-        piece={piecematch(state.board[i][j])}
-        onClick={() => store.dispatch(moveAction(i, j))}
-      />
-    );
-  }
+class ChessRenderer extends React.Component {
   render() {
-    const state = store.getState();
     const buildBoard = [];
     let squareColor = "whiteChessSquare";
     for (let i = 0; i < 8; i++) {
@@ -39,20 +20,27 @@ class Chess extends React.Component {
         } else {
           squareColor = "whiteChessSquare";
         }
-        let cs = this.renderChessSquare(i, j, squareColor);
+        let cs = (
+          <ChessSquare
+            className={squareColor}
+            key={"" + i + j}
+            piece={piecematch(this.props.board[i][j])}
+            onClick={() => this.props.onClick(i, j)}
+          />
+        );
         row.push(cs);
       }
       buildBoard.push(<div key={"row" + i}>{row}</div>);
     }
-
     return (
       <div>
         <div>{buildBoard}</div>
-        <ChessSquare piece={piecematch(state.heldPiece)} />
+        <ChessSquare piece={piecematch(this.props.heldPiece)} />
       </div>
     );
   }
 }
+
 class ChessSquare extends React.Component {
   render() {
     return (
@@ -100,7 +88,7 @@ function piecematch(piece) {
 class Game extends React.Component {
   render() {
     return (
-      <Provider store={store}>
+      <Provider store={createStore(boardReducer, setUpGame())}>
         <div className="game">
           <div className="game-board">
             <Chess />
@@ -114,8 +102,23 @@ class Game extends React.Component {
     );
   }
 }
+
 //Redux
 // ========================================
+const mapDispatchToProps = (dispatch, ownProps) => {
+  return {
+    onClick: (i, j) => dispatch(moveAction(i, j))
+  };
+};
+const mapStateToProps = (state, ownProps) => {
+  return { board: state.board, heldPiece: state.heldPiece };
+};
+const Chess = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(ChessRenderer);
+
+//Action Creators
 function moveAction(i, j) {
   return {
     type: "MOVE",
@@ -124,15 +127,7 @@ function moveAction(i, j) {
   };
 }
 
-const mapDispatchToProps = (dispatch, ownProps) => {
-  return {
-    onClick: () => dispatch(moveAction(ownProps.i, ownProps.j))
-  };
-};
-const mapStateToProps = (state, ownProps) => {
-  return {};
-};
-
+//Reducer and SetUp
 function setUpGame() {
   const matrix = [];
   for (let i = 0; i < 8; i++) {
