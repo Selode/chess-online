@@ -88,7 +88,7 @@ function piecematch(piece) {
 class Game extends React.Component {
   render() {
     return (
-      <Provider store={createStore(boardReducer, setUpGame())}>
+      <Provider store={createStore(boardReducer)}>
         <div className="game">
           <div className="game-board">
             <Chess />
