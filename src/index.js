@@ -124,6 +124,14 @@ function moveAction(i, j) {
   };
 }
 
+function undoAction(i, j) {
+  return {
+    type: "UNDO",
+    i: i,
+    j: j
+  };
+}
+
 const mapDispatchToProps = (dispatch, ownProps) => {
   return {
     onClick: () => dispatch(moveAction(ownProps.i, ownProps.j))
@@ -160,27 +168,48 @@ function setUpGame() {
   for (let i = 0; i < 8; i++) {
     matrix[1][i] = "blackPawn";
   }
-  return { board: matrix, heldPiece: "" };
+  return { board: matrix, heldPiece: "", historyboard: [] };
 }
 function boardReducer(state = setUpGame(), action) {
   var { board, heldPiece } = state;
   var { type, i, j } = action;
-  if (type === "MOVE") {
-    if (heldPiece === "" && board[i][j] !== "") {
-      let newPiece = board[i][j];
+  switch (type) {
+    case "MOVE":
       let newBoard = board.slice();
-      newBoard[i][j] = "";
-      return Object.assign({}, state, { board: newBoard, heldPiece: newPiece });
-    } else if (heldPiece !== "") {
-      let newBoard = board.slice();
-      if (newBoard[i][j] === "blackKing" || newBoard[i][j] === "whiteKing") {
-        alert("The king is dead, long live the king");
+      let newHistoryBoard = historyBoard.slice();
+      if (heldPiece === "" && board[i][j] !== "") {
+        let newPiece = board[i][j];
+
+        newBoard[i][j] = "";
+        newHistoryBoard.push(newBoard);
+        return Object.assign({}, state, {
+          board: newBoard,
+          heldPiece: newPiece,
+          historyBoard: newHistoryBoard
+        });
+      } else if (heldPiece !== "") {
+        if (newBoard[i][j] === "blackKing" || newBoard[i][j] === "whiteKing") {
+          alert("The king is dead, long live the king");
+        }
+        newBoard[i][j] = heldPiece;
+        historyBoard.push(newBoard);
+        return Object.assign({}, state, {
+          board: newBoard,
+          heldPiece: "",
+          historyBoard: newHistoryBoard
+        });
       }
-      newBoard[i][j] = heldPiece;
-      return Object.assign({}, state, { board: newBoard, heldPiece: "" });
-    }
+    case "UNDO":
+      let newBoard = historyBoard.pop();
+      return Object.assign({}, state, {
+        board: newBoard,
+        heldPiece: "",
+        historyBoard: newBoard
+      });
+
+    default:
+      return state;
   }
-  return state;
 }
 // ========================================
 
